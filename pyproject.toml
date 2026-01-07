@@ -1,0 +1,34 @@
+[tool.poetry]
+name = "course-work-sv-5"
+version = "0.1.0"
+description = ""
+authors = ["svetlana-kolesnikova <sv.ps1286@gmail.com>"]
+
+package-mode = false
+
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = ">=3.13,<4.0"
+django = ">=5.0,<6.0"
+django-celery-beat = "^2.8.1"
+djangorestframework = ">=3.16.1,<4.0.0"
+django-cors-headers = ">=4.9.0,<5.0.0"
+psycopg2 = ">=2.9.11,<3.0.0"
+python-dotenv = ">=1.2.1,<2.0.0"
+celery = ">=5.6.2,<6.0.0"
+redis = ">=7.1.0,<8.0.0"
+
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[dependency-groups]
+dev = [
+    "pytest (>=9.0.2,<10.0.0)",
+    "flake8 (>=7.3.0,<8.0.0)",
+    "pytest-django (>=4.11.1,<5.0.0)",
+    "coverage (>=7.13.1,<8.0.0)"
+]
