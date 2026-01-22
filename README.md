@@ -1,40 +1,41 @@
-# Phone Auth Service API
+# Atomic Habits Tracker API
 
-Учебный проект на Django + Django REST Framework.  
-Проект реализует сервис авторизации пользователей по номеру телефона с подтверждением по SMS, систему инвайт-кодов и профиль пользователя.
+
+Проект реализует трекер атомных привычек с возможностью уведомлений через Telegram, 
+управление публичными и личными привычками, а также регистрацию и аутентификацию пользователей.
 
 ---
 
 ## Стек технологий
 
-
 - Python 3.13+
 - Poetry
-- Django 6
+- Django 5
 - Django REST Framework
 - drf-spectacular (OpenAPI / Swagger / ReDoc)
 - PostgreSQL
 - Redis
-- Gunicorn
-- Bootstrap 5
-- Docker / Docker Compose
+- Celery
+- django-celery-beat
+- django-cors-headers
+- psycopg2
+- python-dotenv
+- pytest, pytest-django (для тестирования)
 - coverage (покрытие тестами)
+- black, isort, flake8, mypy (линтинг и проверка типов)
 
 ---
 
 ## Возможности проекта
 
-- Авторизация по номеру телефона
-- Подтверждение входа по SMS-коду
-- Создание пользователя при первом входе
-- Генерация персонального инвайт-кода
-- Активация инвайт-кода другого пользователя
-- Ограничения:
-  - нельзя активировать свой собственный инвайт
-  - инвайт можно активировать только один раз
-- API профиля пользователя
-- HTML-страницы (login / verify / profile)
-- Полное покрытие кода тестами
+- Регистрация и авторизация пользователей
+- API CRUD для привычек
+- Публичные и личные привычки
+- Валидация логики привычек (pleasant, reward, related_habit)
+- Уведомления через Telegram по расписанию (Celery + Redis)
+- Пагинация API (5 элементов на страницу)
+- Swagger/OpenAPI документация
+- Полное покрытие кода тестами (pytest, pytest-django)
 
 ---
 
@@ -43,7 +44,7 @@
 ### 1. Клонировать проект
 ```bash
 git clone <ссылка на репозиторий>
-cd Auth_service
+cd course-work-sv-5
 ```
 
 ### 2. Установить зависимости через Poetry
@@ -58,11 +59,17 @@ poetry shell
 cp .env_sample .env
 ```
 Заполнить необходимые переменные в .env:
-- настройки базы данных
-- Redis
-- SMS Aero (или заглушки для тестов)
+
+Django: DJANGO_SECRET_KEY, DEBUG, ALLOWED_HOSTS
+
+PostgreSQL: POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_HOST, POSTGRES_PORT
+
+Redis: REDIS_URL
+
+Telegram: TELEGRAM_BOT_TOKEN, TELEGRAM_WEBHOOK_SECRET
 
 ⚠️ Для локального запуска PostgreSQL и Redis должны быть установлены и запущены.
+
 
 ### 4. Применить миграции
 ```bash
@@ -82,108 +89,107 @@ python manage.py runserver
 Сервер будет доступен по адресу:
 http://127.0.0.1:8000
 
-___
+---
+## Загрузка учебных данных (фикстуры)
 
-## Docker
+Проект содержит готовые фикстуры для быстрого заполнения базы данных пользователей, привычек и Telegram профилей.
 
-Проект поддерживает запуск через Docker с отдельным env-файлом.
+### Шаги:
 
-### Используемые env-файлы
-| Файл                 | Назначение                    |
-| -------------------- | ----------------------------- |
-| `.env`               | локальный запуск без Docker   |
-| `.env_sample`        | пример для локального запуска |
-| `.env.docker`        | запуск в Docker               |
-| `.env.docker_sample` | пример env для Docker         |
-
-### 1. Подготовка env-файла для Docker
-Скопировать [.env.docker_sample](.env.docker_sample) и при необходимости изменить переменные:
+1. Убедитесь, что выполнены миграции:
 ```bash
-cp .env.docker_sample .env.docker
+python manage.py migrate
+```
+2. Загрузите пользователей:
+```bash
+python manage.py loaddata initial_users.json
+```
+3. Загрузите привычки:
+```bash
+python manage.py loaddata initial_habits.json
+```
+4. Загрузите Telegram профили:
+```bash
+python manage.py loaddata initial_telegram_profiles.json
 ```
 
-В .env.docker:
-```bash
-POSTGRES_HOST=db
-REDIS_HOST=redis
-```
-
-### 2. Запуск проекта
-```bash
-docker-compose up --build
-```
-
-### Сервисы после запуска
-| Сервис  | Описание          | Порт |
-| ------- | ----------------- | ---- |
-| `web`   | Django + Gunicorn | 8000 |
-| `db`    | PostgreSQL        | 5432 |
-| `redis` | Redis             | 6379 |
+⚠️ Обратите внимание: chat_id в фикстурах условные. 
+Для тестов Telegram бота используйте реальные chat_id после привязки через /start < username >.
 
 ---
 
 ## Тестирование и покрытие кода
 
- Запуск тестов с coverage
+Запуск тестов:
 ```bash
-docker-compose run --rm web python -m coverage run --source=users,config manage.py test
+pytest tests/
 ```
 
- Генерация HTML-отчёта
+Генерация HTML-отчёта покрытия:
 ```bash
-docker-compose run --rm web python -m coverage html
+coverage run -m pytest
+coverage html
 ```
 
 Отчёт будет сохранён в папке:
 ```bash
 htmlcov/index.html
 ```
-(📌 Папка htmlcov монтируется на локальный диск, можно открыть в браузере.)
+📌 Папку htmlcov можно открыть в браузере.
 
 ---
 
 ## Приложения проекта
 
-| Приложение | Назначение                                   |
-| ---------- | -------------------------------------------- |
-| `users`    | кастомная модель пользователя, API и шаблоны |
-| `config`   | настройки проекта                            |
+| Приложение     | Назначение                                         |
+| -------------- | -------------------------------------------------- |
+| `users`        | Модель пользователя, регистрация, авторизация      |
+| `habits`       | CRUD для привычек, публичные и личные привычки     |
+| `telegram_bot` | Привязка Telegram, отправка уведомлений через бота |
+| `config`       | Настройки Django, Celery, URL маршруты             |
 
 ---
 
 ## Основные API эндпоинты
 
-### Авторизация
-| Метод | URL                  | Описание               | Пример запроса                          |
-| ----- | -------------------- | ---------------------- | --------------------------------------- |
-| POST  | `/api/phone-auth/`   | отправка SMS-кода      | `{"phone":"79991234567"}`               |
-| POST  | `/api/phone-verify/` | подтверждение SMS-кода | `{"phone":"79991234567","code":"1234"}` |
+### Привычки
+
+| Метод  | URL                   | Описание                     | Пример запроса                                          |
+| ------ | --------------------- | ---------------------------- | ------------------------------------------------------- |
+| GET    | `/api/habits/`        | Список привычек пользователя |                                                         |
+| POST   | `/api/habits/`        | Создание новой привычки      | JSON с полями `action`, `place`, `time`, `reward` и др. |
+| GET    | `/api/habits/public/` | Список публичных привычек    |                                                         |
+| GET    | `/api/habits/<id>/`   | Просмотр привычки            |                                                         |
+| PUT    | `/api/habits/<id>/`   | Обновление привычки          |                                                         |
+| DELETE | `/api/habits/<id>/`   | Удаление привычки            |                                                         |
 
 
-### Профиль
-| Метод | URL             | Описание                      | Пример ответа                                                                          |
-| ----- | --------------- | ----------------------------- | -------------------------------------------------------------------------------------- |
-| GET   | `/api/profile/` | профиль текущего пользователя | `{"phone":"79991234567","invite_code":"ABC123","used_invite":null,"invited_users":[]}` |
+### Telegram
+
+| Метод | URL                               | Описание                  | Пример запроса                                               |
+| ----- | --------------------------------- | ------------------------- | ------------------------------------------------------------ |
+| POST  | `/api/telegram/webhook/<secret>/` | Привязка Telegram профиля | `{"message":{"text":"/start username","chat":{"id":12345}}}` |
 
 
-### Инвайт-коды
-| Метод | URL            | Описание                                   | Пример запроса             |
-| ----- | -------------- | ------------------------------------------ | -------------------------- |
-| POST  | `/api/invite/` | активация инвайт-кода другого пользователя | `{"invite_code":"ABC123"}` |
+### Пользователи
 
-Ограничения:
-- нельзя активировать свой собственный инвайт
-- инвайт можно активировать только один раз
+| Метод | URL                    | Описание                        | Пример запроса                                                |
+| ----- | ---------------------- | ------------------------------- | ------------------------------------------------------------- |
+| POST  | `/api/users/register/` | Регистрация нового пользователя | `{"username":"user1","password":"pass","email":"a@test.com"}` |
+| POST  | `/api/users/login/`    | Авторизация пользователя        | `{"username":"user1","password":"pass"}`                      |
+| POST  | `/api/users/logout/`   | Выход пользователя              | (не требует тела запроса)                                     |
 
 ---
 
 ## API документация
 
-Проект использует OpenAPI спецификацию и автодокументацию.
+Проект использует OpenAPI спецификацию и автодокументацию:
 
-- OpenAPI schema: http://127.0.0.1:8000/api/schema/
-- Swagger UI:     http://127.0.0.1:8000/api/docs/swagger/
-- ReDoc:          http://127.0.0.1:8000/api/docs/redoc/
+OpenAPI schema: http://127.0.0.1:8000/api/schema/
+
+Swagger UI: http://127.0.0.1:8000/api/docs/swagger/
+
+ReDoc: http://127.0.0.1:8000/api/docs/redoc/
 
 ---
 
@@ -191,29 +197,63 @@ htmlcov/index.html
 
 В репозитории присутствует Postman-коллекция со всеми API-запросами проекта.  
 Коллекция полностью соответствует текущим API эндпоинтам 
-[Auth_service.postman_collection.json](Auth_service.postman_collection.json)
 
-Её можно импортировать в Postman и использовать переменные окружения для localhost или Docker.
+[Course_work-5.postman_collection.json](Course_work-5.postman_collection.json)
 
----
-
-## Модель пользователя
-
-### User (users.User)
-- phone — номер телефона (уникальный)
-- invite_code — персональный инвайт-код
-- used_invite — пользователь, чей код был активирован
-- invited_users — пользователи, активировавшие инвайт текущего пользователя
-
-
-### Примечания
-- Redis используется для работы с сессиями
-- Миграции и сбор статических файлов выполняются в entrypoint.sh
-- Gunicorn используется как WSGI-сервер
-- Проект полностью готов к проверке и запуску в Docker
+📌 Её можно импортировать в Postman и использовать переменные окружения для localhost.
 
 ---
 
-Автор
+## Модели проекта
+
+### Habit (habits.Habit)
+- user — владелец привычки
+- action — описание привычки
+- place — место выполнения
+- time — время выполнения
+- is_pleasant — признак приятной привычки
+- related_habit — связанная приятная привычка
+- reward — вознаграждение за полезную привычку
+- frequency — периодичность в днях
+- duration — длительность в секундах
+- is_public — публичная привычка
+- last_notified — дата последнего уведомления
+
+Валидации:
+
+- Время выполнения ≤ 120 секунд
+- Периодичность 1–7 дней
+- Pleasant habit не может иметь reward и related_habit
+- Полезная привычка должна иметь reward или related_habit, но не оба сразу
+
+### TelegramProfile (telegram_bot.TelegramProfile)
+- user — владелец профиля
+- chat_id — идентификатор чата Telegram
+- created_at — дата создания профиля
+
+### User (django.contrib.auth.models.User)
+- Стандартная модель пользователя Django
+- Используется для привязки привычек и Telegram
+
+---
+
+## Тестирование проекта
+
+### Фикстуры (tests/conftest.py):
+- api_client — DRF APIClient
+- create_user — создание пользователя
+- authenticated_client — клиент с аутентификацией
+- habit_factory — фабрика привычек
+- telegram_profile_factory — фабрика Telegram профилей
+- mock_telegram_send — мок Telegram API
+
+### Примеры тестов:
+- tests/test_habits.py — CRUD привычек, публичные привычки
+- tests/telegram-bot.py — привязка Telegram через вебхук
+- tests/users.py — регистрация, логин и получение токена
+
+---
+
+### Автор
 Svetlana Kolesnikova
 ---
