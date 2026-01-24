@@ -89,5 +89,12 @@ jobs:
           script: |
             cd /home/ubuntu/course-work-sv-5
             git pull origin develop
-            docker-compose pull
-            docker-compose up -d --build
+
+            # Поднимаем контейнеры (web, celery, celery-beat, db, redis)
+            sudo docker compose up -d --build
+
+            # Миграции базы данных
+            sudo docker compose exec web poetry run python manage.py migrate
+
+            # Сбор статики
+            sudo docker compose exec web poetry run python manage.py collectstatic --noinput
