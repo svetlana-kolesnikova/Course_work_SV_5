@@ -23,6 +23,8 @@
 - pytest, pytest-django (для тестирования)
 - coverage (покрытие тестами)
 - black, isort, flake8, mypy (линтинг и проверка типов)
+- Docker, Docker Compose
+- GitHub Actions (CI/CD)
 
 ---
 
@@ -36,6 +38,7 @@
 - Пагинация API (5 элементов на страницу)
 - Swagger/OpenAPI документация
 - Полное покрытие кода тестами (pytest, pytest-django)
+- Автоматизированный деплой на удалённый сервер через GitHub Actions
 
 ---
 
@@ -43,17 +46,11 @@
 
 ### 1. Клонировать проект
 ```bash
-git clone <ссылка на репозиторий>
+git clone https://github.com/svetlana-kolesnikova/Course_work_SV_5
 cd course-work-sv-5
 ```
 
-### 2. Установить зависимости через Poetry
-```bash
-poetry install
-poetry shell
-```
-
-### 3. Настроить переменные окружения
+### 2. Настроить переменные окружения
 Скопировать файл [.env_sample](.env_sample) и заполнить переменные:
 ```bash
 cp .env_sample .env
@@ -71,23 +68,21 @@ Telegram: TELEGRAM_BOT_TOKEN, TELEGRAM_WEBHOOK_SECRET
 ⚠️ Для локального запуска PostgreSQL и Redis должны быть установлены и запущены.
 
 
-### 4. Применить миграции
+### 3. Запуск проекта одной командой
 ```bash
-python manage.py migrate
+sudo docker compose down && \
+sudo docker image prune -af && \
+sudo docker volume prune -f && \
+sudo docker compose up -d --build && \
+sudo docker compose exec web poetry run python manage.py migrate && \
+sudo docker compose exec web poetry run python manage.py collectstatic --noinput
 ```
 
-### 5. Создать суперпользователя (опционально)
-```bash
-python manage.py createsuperuser
-```
-
-### 6. Запустить сервер разработки
-```bash
-python manage.py runserver
-```
-
-Сервер будет доступен по адресу:
-http://127.0.0.1:8000
+После выполнения проект будет полностью развернут:
+- База данных создана и мигрирована
+- Статические файлы собраны
+- Gunicorn сервер поднят
+- Celery и Celery Beat запущены
 
 ---
 ## Загрузка учебных данных (фикстуры)
@@ -139,6 +134,14 @@ htmlcov/index.html
 
 ---
 
+## CI/CD через GitHub Actions
+
+- Тесты и линтинг запускаются при push в develop и pull request.
+- После успешных тестов проект автоматически деплоится на удалённый сервер через SSH.
+- Используется единый workflow: .github/workflows/ci-cd.yml
+- На сервере проект поднимается через Docker Compose с миграциями и сборкой статики.
+
+---
 ## Приложения проекта
 
 | Приложение     | Назначение                                         |
