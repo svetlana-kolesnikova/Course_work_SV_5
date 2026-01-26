@@ -1,6 +1,5 @@
 name: CI/CD Pipeline
 
-# Запуск pipeline при пуше в develop или pull request
 on: [push]
 
 jobs:
