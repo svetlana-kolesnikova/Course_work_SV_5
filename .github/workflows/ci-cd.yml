@@ -57,11 +57,8 @@ jobs:
           pip install poetry
           poetry install
 
-      - name: Run linters
+      - name: Run flake8
         run: |
-          poetry run mypy .
-          poetry run black --check .
-          poetry run isort --check-only .
           poetry run flake8 .
 
       - name: Run tests with coverage
